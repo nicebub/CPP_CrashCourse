@@ -1,5 +1,5 @@
-CC=g++-9
-CXX=g++-9
+CC=g++
+CXX=g++
 #CXX= clang++
 #CPPFLAGS= -std=c++11
 #-stdlib=libc++

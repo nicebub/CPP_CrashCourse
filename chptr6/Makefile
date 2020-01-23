@@ -1,7 +1,7 @@
 CC=c++
 #CXX=g++
 #CXX= clang++
-CPPFLAGS= -std=c++11 -g 
+CPPFLAGS= -std=c++11 -g
 #-stdlib=libc++
 FILES = $(subst $(wildcard ./),, $(wildcard ./*.cpp))
 EXECS = $(patsubst %.cpp, %, $(FILES))

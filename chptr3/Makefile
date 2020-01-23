@@ -1,5 +1,5 @@
 CXX= clang++
-CPPFLAGS= -std=c++14 
+CPPFLAGS= -std=c++14
 #-stdlib=libc++
 EXECS= llman Element auto
 #OBJECTS= Element.o

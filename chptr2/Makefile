@@ -1,5 +1,5 @@
 CXX= clang++
-CPPFLAGS= -std=c++11 
+CPPFLAGS= -std=c++11
 #-stdlib=libc++
 EXECS= calc
 all: $(EXECS)
