@@ -97,6 +97,7 @@ int main(){
 	   else
 		  printf("array: %d none\n",i);
     }
+/*
 	float fl_array[] = {1.3,1.3,1.4,4.5,4.5,4.5,6.7,6.7,8.9,12.45,12.45,4.5,12.45,21.09};
 	float fl_array2[] = {1.3,1.3,1.4,4.5,4.5,4.5,6.7,6.7,8.9,12.45,12.45,12.45,21.09};
 	float fresult;
@@ -108,5 +109,5 @@ int main(){
  		 printf("float array mode: %f\n",fresult);
  	 else
  	 	 printf("float array none\n");
-	
+*/	
 }
