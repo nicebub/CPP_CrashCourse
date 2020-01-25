@@ -4,15 +4,22 @@
 //#include <stdexcept>
 #include <vector>
 #include <algorithm>
+#include <type_traits>
+
+template<typename valuetype>
+concept bool Integer() {
+	return std::is_integral<valuetype>::value;
+};
 /* mode returns most found integer in an already sorted
  * int[] array or throws error
  * arguments are array of values and its length inn members
  */
-int mode(const int *values, const size_t length) {
+template<Integer valuetype>
+valuetype mode(const valuetype *values, const size_t length) {
+
+    valuetype last_value;			/* last value seen throug loop*/
 	
-    int last_value;			/* last value seen throug loop*/
-	
-    int mode_value{-1}; 		/* mode found if any
+    valuetype mode_value{-1}; 		/* mode found if any
 						 * defaults to error code*/
 		
     size_t greatest_count{0}; 	/* keep track of most seen number
@@ -24,8 +31,8 @@ int mode(const int *values, const size_t length) {
 					   /* check to see if tie between modes
 					    * if values is NULL throw an exception */
     if(!values || length <=0) return 0;
-	
-	std::vector<int> value_vector(values,values+length);
+
+	std::vector<valuetype> value_vector(values,values+length);
 	std::sort(value_vector.begin(),value_vector.end());
 
     last_value=value_vector[0];
@@ -62,7 +69,7 @@ int mode(const int *values, const size_t length) {
 				    /* return the value to be found as the mode*/
     if(tie) return 0;
     return mode_value;
-}
+};
 
 int main(){
     int result;
@@ -85,9 +92,21 @@ int main(){
     lengths[4] = 5;
     /* number of arrays: sizeof(array)/sizeof(int*)*/
     for(auto i{0};i<num_arrays;++i){
-		  if((result = mode(array[i], lengths[i]))!=0)
+		  if((result = mode(array[i], lengths[i])))
 			 printf("array: %d mode: %d\n", i,result);
 	   else
 		  printf("array: %d none\n",i);
     }
+	float fl_array[] = {1.3,1.3,1.4,4.5,4.5,4.5,6.7,6.7,8.9,12.45,12.45,4.5,12.45,21.09};
+	float fl_array2[] = {1.3,1.3,1.4,4.5,4.5,4.5,6.7,6.7,8.9,12.45,12.45,12.45,21.09};
+	float fresult;
+  	if((fresult = mode(fl_array, sizeof(fl_array)/sizeof(float))))
+		 printf("float array mode: %f\n",fresult);
+	 else
+	 	 printf("float array none\n");
+   	if((fresult = mode(fl_array2, sizeof(fl_array2)/sizeof(float))))
+ 		 printf("float array mode: %f\n",fresult);
+ 	 else
+ 	 	 printf("float array none\n");
+	
 }
