@@ -12,13 +12,14 @@ struct Account {
 	virtual bool operator==(const Account& other) const = 0;
 	virtual ~Account() = default;
 };
-struct CheckingAccount : Account {
-	CheckingAccount(const long id, double amount) :
-		id{ id },
-		amount{ amount }{
+struct BaseAccount : Account {
+	BaseAccount() : id{}, amount{} {
 	}
-	CheckingAccount(const long id) : id{ id }, amount{} {}
-
+	BaseAccount(const long id, double amount) :
+		id{ id },
+		amount{ amount } {
+	}
+	BaseAccount(const long id) : id{ id }, amount{} {}
 	long get_id() const override {
 		return id;
 	}
@@ -45,48 +46,22 @@ struct CheckingAccount : Account {
 	bool operator==(const Account& other) const override {
 		return other.get_id()==this->get_id();
 	}
+	~BaseAccount() override {}
 private:
 	long id;
 	double amount;
 };
-struct SavingsAccount : Account {
-	    SavingsAccount(const long id, double amount) :
-		    id{ id },
-		    amount{ amount }{
-	    }
-	    SavingsAccount(const long id) : id{ id }, amount{} {}
-
-	    long get_id() const override {
-		    return id;
-	    }
-	    std::string to_string() const override {
-		    return std::to_string(get_id());
-	    }
-	    void set_id(const long id) override {
-		    this->id = id;
-	    }
-	    double get_balance() const override {
-		    return amount;
-	    }
-	    void set_balance(const double balance) override {
-		    this->amount = balance;
-	    }
-	    void add_to_balance(const double amount) override {
-		    this->amount += amount;
-	    }
-	    void remove_from_balance(const double amount) override {
-		    if(amount > this->amount)
-			    throw std::runtime_error("Not enough money in account");
-		    this->amount -= amount;
-	    }
-	    bool operator==(const Account& other) const override {
-		    return other.get_id()==this->get_id();
-	    }
-    private:
-	    long id;
-	    double amount;
-
+struct CheckingAccount : BaseAccount {
+	CheckingAccount(const long id, double amount): BaseAccount{id,amount} {}
+	CheckingAccount(const long id) : BaseAccount{id}{}
+	~CheckingAccount(){}
 };
+struct SavingsAccount : BaseAccount {
+	SavingsAccount(const long id, double amount): BaseAccount{id,amount} {}
+	SavingsAccount(const long id) : BaseAccount{id}{}
+	~SavingsAccount(){}
+};
+
 template<typename T>
 struct AccountDatabase {
 	virtual T* is_in_database(const T *id) const = 0;
@@ -112,20 +87,15 @@ struct InMemoryAccountDatabase : AccountDatabase<T> {
 			if(*id_table[i] == *id)
 				return id_table[i];
 		throw std::logic_error("ID not in database");
-//		return nullptr;
 	}
 
 	double get_amount(const T *id) const override {
 		auto result = this->is_in_database(id);
-/*		if(!result) 
-			throw std::logic_error("ID not in database");*/
 		return result->get_balance();
 		
 	}
 	void set_amount( T *id,const double amount) override {
 		auto result = this->is_in_database(id);
-/*		if(!result) 
-			throw std::logic_error("ID not in database");*/
 		result->set_balance(amount);
 	}
     void add_to_balance(T *id,const double amount) override {
@@ -171,19 +141,17 @@ struct Bank {
 	void make_transfer( T *from,  T *to, const double amount) {
 		try{
 			this->remove_from_balance(from,amount);
-//			printf("get_amount: %f\n",this->get_amount(from));
 		}
 		catch(std::runtime_error &e){
 			printf("runtime error: %s: %ld\n",e.what(),from->get_id());
 			return;
 		}
 		catch(std::logic_error &e){
-			printf("logic error:%s: %ld\n",e.what(),from->get_id());
+			printf("logic error: %s: %ld\n",e.what(),from->get_id());
 			return;
 		}
 		try{
 			this->add_to_balance(to,amount);
-//			printf("get_amount: %f\n",this->get_amount(to));
 			if (logger) logger->log_transfer(from,to,amount);
 		}
 		catch(std::runtime_error &e){
