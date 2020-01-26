@@ -15,6 +15,6 @@ all: $(EXECS) $(OBJECTS)
 
 
 clean:
-	rm $(EXECS) $(OBJECTS)
+	rm $(EXECS) $(OBJECTS); rm -rf *.dSYM
 
 .PHONY: all clean
