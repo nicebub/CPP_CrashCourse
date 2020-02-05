@@ -68,16 +68,35 @@ struct UnsignedBigInteger {
 			printf("%c",getvalueforIndex(c));
 		printf("\n");
 	}
-     const char *getresultforFunction(const UnsignedBigInteger &in,char (&result)[],
-							 const std::function<int(const char,const char, int&)> func) const {
-	   int rsult{}, carry{};
-	   size_t curindex{},inindex{},longest{};
-	   
-	   if(getLength() > in.getLength())
-		   longest = getLength();
+    static const int add2charswithCarry(const int one, const int two, int& carry)  noexcept{
+	   int r = one + two + carry;
+	   #ifdef DEBUG
+	   printf("o:%d + t:%d + carry:%d = r: %d\n",one,two,carry,r);
+	   #endif
+	   if(r >9){
+		   carry = 1;
+		   r -= 10;
+	   }
 	   else
-		   longest = in.getLength();
-//	   char result[longest+1];
+		   carry = 0;
+	   return r;
+    }
+    static const int sub2charswithCarry(const int one, const int two, int& carry)  noexcept {
+	   int r = one - two - carry;
+	   if(r <0){
+		   carry = 1;
+		   r += 10;
+	   }
+	   else
+		   carry = 0;
+	   return r;
+    }
+
+    void getresultforFunction(const UnsignedBigInteger &in,
+	 				char (*result),const size_t longest,
+					const std::function<const int(const int,const int, int&)> func) const{
+	   int rsult{}, carry{};
+	   size_t curindex{},inindex{};
 
 	   for(curindex=1, inindex=1;curindex<=getLength() && inindex<=in.getLength();
 		   curindex++,inindex++){
@@ -85,6 +104,10 @@ struct UnsignedBigInteger {
 		  rsult = func(getIntvalueforIndex(getLength()-curindex),
 					in.getIntvalueforIndex(in.getLength()-inindex),carry);
 		   #ifdef DEBUG
+		  printf("getIntvalueforIndex(getLength()-curindex):%d ",
+			    getIntvalueforIndex(getLength()-curindex));
+		  printf("in.getIntvalueforIndex(in.getLength()-inindex):%d\n",
+			    in.getIntvalueforIndex(in.getLength()-inindex));
 		   printf("storing rsult:%d into longest-c:%lu\n",rsult,longest-curindex);
 		   #endif
 		   result[longest-curindex] = (rsult+'0');
@@ -95,7 +118,7 @@ struct UnsignedBigInteger {
 		   printf("curindex:%lu <= getLength():%lu\n",curindex,getLength());
 		   #endif
 		   for(;curindex<=getLength();curindex++){
-			   result[longest-curindex] = func(getvalueforIndex(getLength()-curindex),'0',carry);
+			   result[longest-curindex] = func(getIntvalueforIndex(getLength()-curindex),0,carry)+'0';
 			  carry=0;
 			   #ifdef DEBUG
 			   printf("storing rsult:%d into longest-curindex:%lu\n",
@@ -109,7 +132,7 @@ struct UnsignedBigInteger {
 		   printf("inindex:%lu <= in.getLength():%lu\n",inindex,in.getLength());
 		   #endif
 		   for(;inindex<=in.getLength();inindex++){
-			   result[longest-inindex] = func(in.getvalueforIndex(in.getLength()-inindex),'0',carry);
+			   result[longest-inindex] = func(in.getIntvalueforIndex(in.getLength()-inindex),0,carry)+'0';
 			  carry=0;
 			   #ifdef DEBUG
 			   printf("storing rsult:%d into longest-inindex:%lu\n",
@@ -126,182 +149,56 @@ struct UnsignedBigInteger {
 	   #ifdef DEBUG
 	   printf("%s\n",result);
 	   #endif
-	   return result;
+	  // return result;
     }
-    const int add2charswithCarry(const char one, const char two, int& carry) const noexcept{
-	   int o = (one - '0');
-	   int t = (two - '0');
-	   int r = o + t + carry;
-	   if(r >9){
-		   carry = 1;
-		   r -= 10;
-	   }
-	   else
-		   carry = 0;
-	   return r;
-    }
-    const int sub2charswithCarry(const char one, const char two, int& carry) const noexcept {
-	   int o = (one - '0');
-	   int t = (two - '0');
-	   int r = o - t - carry;
-	   if(r <0){
-		   carry = 1;
-		   r += 10;
-	   }
-	   else
-		   carry = 0;
-	   return r;
-    }
-	const UnsignedBigInteger operator+(const int& in) const {
-		char temp[std::numeric_limits<int>::digits10+2];
-		sprintf(temp,"%d",in);
-	    char real[strlen(temp)+1];
-	    std::strcpy(real,temp);
-		UnsignedBigInteger t{real};
-	    return *this+t;
+	const UnsignedBigInteger op_UBIhelper(const UnsignedBigInteger &in,
+			const std::function<const int(const int,const int, int&)> func) const {
+				int carry{};
+				size_t longest{};
+
+				if(getLength() > in.getLength())
+					longest = getLength();
+				else
+					longest = in.getLength();
+				char result[longest+1];
+			   #ifdef DEBUG
+			    printf("getLength():%lu in.getLength():%lu longest: %lu\n",getLength(),in.getLength(),longest);
+			   #endif
+			     getresultforFunction(in,result,longest,func);
+
+				if(carry){
+					throw std::range_error("oveflow");
+				}
+		
+				result[longest]='\0';
+				#ifdef DEBUG
+				printf("%s\n",result);
+				#endif
+				UnsignedBigInteger r{result};
+				return UnsignedBigInteger(result);
+				
 	}
-    const UnsignedBigInteger operator-(const int& in) const {
+    const UnsignedBigInteger op_INThelper(const int& in) const {
 	    char temp[std::numeric_limits<int>::digits10+2];
 	    sprintf(temp,"%d",in);
 	   char real[strlen(temp)+1];
 	   std::strcpy(real,temp);
 	    UnsignedBigInteger t{real};
-	   return *this-t;
+	   return t;
+
+    }
+	const UnsignedBigInteger operator+(const int& in) const noexcept{
+	    return *this + op_INThelper(in);
+	}
+    const UnsignedBigInteger operator-(const int& in) const noexcept {
+	   return *this - op_INThelper(in);
+//	   return *this-t;
     }
     const UnsignedBigInteger operator-(const UnsignedBigInteger& in) const {
-	   int rsult{}, carry{};
-	   size_t curindex{},inindex{},longest{};
-
-	   if(getLength() > in.getLength())
-		   longest = getLength();
-	   else
-		   longest = in.getLength();
-	   char result[longest+1];
-
-	   for(curindex=1, inindex=1;
-		   curindex<=getLength() && inindex<=in.getLength();
-		   curindex++,inindex++){
-		   rsult = getIntvalueforIndex(getLength()-curindex)
-			    - in.getIntvalueforIndex(in.getLength()-inindex)
-			    - carry;
-		   if(rsult <0){
-			   carry = 1;
-			   rsult += 10;
-		   }
-		   else
-			   carry = 0;
-		   #ifdef DEBUG
-		   printf("storing rsult:%d into longest-c:%lu\n",rsult,longest-curindex);
-		   #endif
-		   result[longest-curindex] = (rsult+'0');
-	   }
-
-	   if(curindex <= getLength()){
-		   #ifdef DEBUG
-		   printf("curindex:%lu <= getLength():%lu\n",curindex,getLength());
-		   #endif
-		   for(;curindex<=getLength();curindex++){
-			   result[longest-curindex] = getvalueforIndex(getLength()-curindex)-carry;
-			  carry=0;
-			   #ifdef DEBUG
-			   printf("storing rsult:%d into longest-curindex:%lu\n",
-				   getIntvalueforIndex(getLength()-curindex),longest-curindex-carry);
-			   #endif
-		   }
-	   }
-
-	   else if(inindex <=in.getLength()){
-		   #ifdef DEBUG
-		   printf("inindex:%lu <= in.getLength():%lu\n",inindex,in.getLength());
-		   #endif
-		   for(;inindex<=in.getLength();inindex++){
-			   result[longest-inindex] = in.getvalueforIndex(in.getLength()-inindex) - carry;
-			  carry=0;
-			   #ifdef DEBUG
-			   printf("storing rsult:%d into longest-inindex:%lu\n",
-				   in.getIntvalueforIndex(in.getLength()-inindex),longest-inindex-carry);
-			   #endif
-		   }
-	   }
-
-	   if(carry){
-		   throw std::range_error("oveflow");
-	   }
-	   
-	   result[longest]='\0';
-	   #ifdef DEBUG
-	   printf("%s\n",result);
-	   #endif
-	   UnsignedBigInteger r{result};
-	   return UnsignedBigInteger(result);
-
+		return op_UBIhelper(in,sub2charswithCarry);
     }
 	const UnsignedBigInteger operator+(const UnsignedBigInteger& in) const{
-		int rsult{}, carry{};
-		size_t curindex{},inindex{},longest{};
-
-		if(getLength() > in.getLength())
-			longest = getLength();
-		else
-			longest = in.getLength();
-		char result[longest+1];
-
-		for(curindex=1, inindex=1;
-			curindex<=getLength() && inindex<=in.getLength();
-			curindex++,inindex++){
-			rsult = getIntvalueforIndex(getLength()-curindex)
-				 + in.getIntvalueforIndex(in.getLength()-inindex)
-				 + carry;
-			if(rsult >9){
-				carry = 1;
-				rsult -= 10;
-			}
-			else
-				carry = 0;
-			#ifdef DEBUG
-			printf("storing rsult:%d into longest-c:%lu\n",rsult,longest-curindex);
-			#endif
-			result[longest-curindex] = (rsult+'0');
-		}
-
-		if(curindex <= getLength()){
-			#ifdef DEBUG
-			printf("curindex:%lu <= getLength():%lu\n",curindex,getLength());
-			#endif
-			for(;curindex<=getLength();curindex++){
-				result[longest-curindex] = getvalueforIndex(getLength()-curindex)+carry;
-			    carry=0;
-				#ifdef DEBUG
-				printf("storing rsult:%d into longest-curindex:%lu\n",
-					getIntvalueforIndex(getLength()-curindex),longest-curindex+carry);
-				#endif
-			}
-		}
-
-		else if(inindex <=in.getLength()){
-			#ifdef DEBUG
-			printf("inindex:%lu <= in.getLength():%lu\n",inindex,in.getLength());
-			#endif
-			for(;inindex<=in.getLength();inindex++){
-				result[longest-inindex] = in.getvalueforIndex(in.getLength()-inindex) + carry;
-			    carry=0;
-				#ifdef DEBUG
-				printf("storing rsult:%d into longest-inindex:%lu\n",
-					in.getIntvalueforIndex(in.getLength()-inindex),longest-inindex+carry);
-				#endif
-			}
-		}
-
-		if(carry){
-			throw std::range_error("oveflow");
-		}
-		
-		result[longest]='\0';
-		#ifdef DEBUG
-		printf("%s\n",result);
-		#endif
-		UnsignedBigInteger r{result};
-		return UnsignedBigInteger(result);
+		return op_UBIhelper(in,add2charswithCarry);
 	}
 private:
 	const size_t internalLength;
@@ -321,6 +218,8 @@ int main(){
 	printf("Testing char* conststructor\n");
 	UnsignedBigInteger a{num2};
 	UnsignedBigInteger b{num};
+    a.print();
+    b.print();
 
 	printf("Testing Copy Constructor: %s\n",a.tostring());
 	UnsignedBigInteger d{a};
