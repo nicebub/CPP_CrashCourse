@@ -4,44 +4,42 @@
 #include <string>
 #undef DEBUG
 struct UnsignedBigInteger {
+
 	UnsignedBigInteger() :
 	internalLength{},
 	internalArray{nullptr} {}
 
-    UnsignedBigInteger(const UnsignedBigInteger& in) :
-    internalLength{in.internalLength},
-    internalArray{std::strcpy(new char[internalLength+1],in.internalArray)}{}
+	UnsignedBigInteger(const UnsignedBigInteger& in) :
+	internalLength{in.internalLength},
+	internalArray{std::strcpy(new char[internalLength+1],in.internalArray)}{}
 
-    UnsignedBigInteger( const char *in) :
+	UnsignedBigInteger( const char *in) :
 	internalLength{ std::strlen(in) },
 	internalArray{ std::strcpy(new char[internalLength+1],in)}
 	{
 		if(getvalueforIndex(0) == '-'){
-			if(internalArray){
-				#ifdef DEBUG
-			    printf("deleting internal array with address %p\n",internalArray);
-				#endif
-			    delete[] internalArray;
-				internalArray = nullptr;
-			}
+			cleanup();
 			throw std::range_error("cannot make UnsignedBigInteger from signed int");
 		}
 	}
-	~UnsignedBigInteger(){
+	const void cleanup(void)  noexcept{
 		if(internalArray){
-			 #ifdef DEBUG
+			#ifdef DEBUG
 			printf("deleting internal array with address %p\n",internalArray);
-			 #endif
-		    delete[] internalArray;
+			#endif
+			delete[] internalArray;
 			internalArray = nullptr;
 		}
 	}
+	~UnsignedBigInteger(){
+		cleanup();
+	}
 
-    const char* tostring(void) const noexcept {
-	   return internalArray;
-    }
+	const char* tostring(void) const noexcept {
+		return internalArray;
+	}
 
-    operator int() const {
+	operator int() const {
 	    if(getLength() > std::numeric_limits<int>::digits10+2)
 		   throw std::range_error("narrowing");
 		   int value;
@@ -207,25 +205,25 @@ private:
 
 int main(){
 	try{
-		 printf("Testing exception due to signed integer: ");
-	   UnsignedBigInteger c{"-1"};
+		printf("Testing exception due to signed integer: ");
+		UnsignedBigInteger c{"-1"};
 	}catch(std::range_error &e){
-	    printf("range exception: %s: %d\n",e.what(),-1);
+		printf("range exception: %s: %d\n",e.what(),-1);
 	}
 
-     char num[] = {"123"};
+	char num[] = {"123"};
 	char num2[] { "2147483648"};
 	printf("Testing char* conststructor\n");
 	UnsignedBigInteger a{num2};
 	UnsignedBigInteger b{num};
-    a.print();
-    b.print();
+	a.print();
+	b.print();
 
 	printf("Testing Copy Constructor: %s\n",a.tostring());
 	UnsignedBigInteger d{a};
 	printf("New UnsignedBigInteger value: %s\n",d.tostring());
 
-     printf("Testing getLength(): length of a: %ld\n",a.getLength());
+	printf("Testing getLength(): length of a: %ld\n",a.getLength());
 	printf("Testing getLength(): length of b: %ld\n",b.getLength());
 
 	printf("Testing print() fuction for a: ");
@@ -234,46 +232,53 @@ int main(){
 	b.print();
 
 	printf("Testing operator+ overload UnsignedBigInteger: %s + UnsignedBigInteger:%s = %s\n",
-		  a.tostring(),b.tostring(),(a+b).tostring());
+
+	a.tostring(),b.tostring(),(a+b).tostring());
 
 	try{
 		UnsignedBigInteger e{"877"};
 		printf("Testing overflow of operator+ with 2 UnsignedBigIntegers: %s + %s\n",
-			  e.tostring(),b.tostring());
+			e.tostring(),b.tostring());
 		(e+b).print();
 	}catch(std::range_error &e){
 		printf("range exception: %s\n",e.what());
 	}
 	UnsignedBigInteger f{"876"};
 	printf("Testing operator+ overload without overflow %s + %s = %s\n",
-		  f.tostring(),b.tostring(),(f+b).tostring());
+		f.tostring(),b.tostring(),(f+b).tostring());
 	
 	printf("Testing operator+ overload of UnsignedBigInteger:%s + int:%d = %s\n",
-		  b.tostring(),27,(b+27).tostring());
+		b.tostring(),27,(b+27).tostring());
 
-    printf("Testing operator+ overload UnsignedBigInteger:%s + int:%d = %s\n",f.tostring(),27,(f+27).tostring());
+	printf("Testing operator+ overload UnsignedBigInteger:%s + int:%d = %s\n",f.tostring(),27,(f+27).tostring());
 
-    printf("Testing operator int() implicit cast overload of UnsignedBigInteger: %d + %s: %d\n",
+	printf("Testing operator int() implicit cast overload of UnsignedBigInteger: %d + %s: %d\n",
 		 27,f.tostring(),27+f);
 
-    printf("%d\n",std::numeric_limits<int>::max());
-    UnsignedBigInteger g{"2147483647"};
-    printf("Testing operator int() cast overload of UnsignedBigInteger:%s  as an integer: %d\n",
+	printf("%d\n",std::numeric_limits<int>::max());
+	UnsignedBigInteger g{"2147483647"};
+	printf("Testing operator int() cast overload of UnsignedBigInteger:%s  as an integer: %d\n",
 		 g.tostring(),(int)g);
 
-    UnsignedBigInteger h{"2147483648"};
-    try{
+	UnsignedBigInteger h{"2147483648"};
+	try{
 		printf("Testing operator int() explicit cast overload with narrowing: %s\n",h.tostring());
 		  int r = (int)h;
 		  r++;
-    }catch(std::range_error &e){
-	   printf("range error: %s: %s\n",e.what(),h.tostring());
-    }
-    try{
+	}catch(std::range_error &e){
+		printf("range error: %s: %s\n",e.what(),h.tostring());
+	}
+	try{
 		printf("Testing operator int() implicit cast overload with narrowing: %s\n",h.tostring());
 		  int s = h;
 		  s++;
-    }catch(std::range_error &e){
-	   printf("range error: %s: %s\n",e.what(),h.tostring());
-    }
+	}catch(std::range_error &e){
+		printf("range error: %s: %s\n",e.what(),h.tostring());
+	}
+	
+	UnsignedBigInteger s1{"450"};
+	UnsignedBigInteger s2{"400"};
+	printf("450 - 400 = %s\n",(s1-s2).tostring());
+	printf("400 - 450 = %s\n",(s2-s1).tostring());
+	
 }
