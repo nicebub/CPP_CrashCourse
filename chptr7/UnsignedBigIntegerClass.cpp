@@ -1,8 +1,12 @@
 #include <cstddef>
 #include <cstdio>
 #include <stdexcept>
-#include <string>
+#include <type_traits>
+#include <functional>
+#include <cstring>
+#include <limits>
 #undef DEBUG
+
 struct UnsignedBigInteger {
 
 	UnsignedBigInteger() :
@@ -39,38 +43,45 @@ struct UnsignedBigInteger {
 		return internalArray;
 	}
 
-	operator int() const {
-	    if(getLength() > std::numeric_limits<int>::digits10+2)
-		   throw std::range_error("narrowing");
-		   int value;
-	    sscanf(internalArray,"%d",&value);
-	    if(value < 0)
+	template<typename T>
+	operator T() const {
+		static_assert(std::is_integral<T>::value,"can only cast to integral type");
+	    T value{0};
+	    long long temp{0};
+	    for(size_t iptr{0};iptr<getLength();iptr++){
+		   temp *= (T)10;
+		   temp += (T)getIntvalueforIndex(iptr);
+	    }
+	   #ifdef DEBUG
+	    printf("found value: %lld",temp);
+	   #endif
+	    value =(T)temp;
+	    if(value < 0 || (getLength() > std::numeric_limits<T>::digits10+2))
 		   throw std::range_error("narrowing");
 	    return value;
 	}
 	const size_t getLength(void) const noexcept {
 		return internalLength;
 	}
-	const char getvalueforIndex(const size_t index)const {
+	const void checkIndexIsValid(const size_t index) const{
 		if(index >= getLength() || index <0)
 			throw std::range_error("index out of bounds");
+	}
+	const char getvalueforIndex(const size_t index)const noexcept{
+		checkIndexIsValid(index);
 		return internalArray[index];
 	}
-	const int getIntvalueforIndex(const size_t index)const {
-		if(index >= getLength() || index <0)
-			throw std::range_error("index out of bounds");
+	const int getIntvalueforIndex(const size_t index)const noexcept {
+		checkIndexIsValid(index);
 		return internalArray[index]-'0';
 	}
-	void print(void) const noexcept {
+	const void print(void) const noexcept {
 		for(auto c{0};c<getLength();c++)
 			printf("%c",getvalueforIndex(c));
 		printf("\n");
 	}
-    static const int add2charswithCarry(const int one, const int two, int& carry)  noexcept{
+    static const short add2charswithCarry(const short one, const short two, short& carry)  noexcept{
 	   int r = one + two + carry;
-	   #ifdef DEBUG
-	   printf("o:%d + t:%d + carry:%d = r: %d\n",one,two,carry,r);
-	   #endif
 	   if(r >9){
 		   carry = 1;
 		   r -= 10;
@@ -79,7 +90,7 @@ struct UnsignedBigInteger {
 		   carry = 0;
 	   return r;
     }
-    static const int sub2charswithCarry(const int one, const int two, int& carry)  noexcept {
+    static const short sub2charswithCarry(const short one, const short two, short& carry)  noexcept {
 	   int r = one - two - carry;
 	   if(r <0){
 		   carry = 1;
@@ -91,23 +102,18 @@ struct UnsignedBigInteger {
     }
 
     void getresultforFunction(const UnsignedBigInteger &in,
-	 				char (*result),const size_t longest,
-					const std::function<const int(const int,const int, int&)> func) const{
-	   int rsult{}, carry{};
+	 	char (*result),const size_t longest,
+		const std::function<const short(const short,const short, short&)> func) const{
+
+	   short rsult{}, carry{};
 	   size_t curindex{},inindex{};
 
 	   for(curindex=1, inindex=1;curindex<=getLength() && inindex<=in.getLength();
 		   curindex++,inindex++){
 
 		  rsult = func(getIntvalueforIndex(getLength()-curindex),
-					in.getIntvalueforIndex(in.getLength()-inindex),carry);
-		   #ifdef DEBUG
-		  printf("getIntvalueforIndex(getLength()-curindex):%d ",
-			    getIntvalueforIndex(getLength()-curindex));
-		  printf("in.getIntvalueforIndex(in.getLength()-inindex):%d\n",
-			    in.getIntvalueforIndex(in.getLength()-inindex));
-		   printf("storing rsult:%d into longest-c:%lu\n",rsult,longest-curindex);
-		   #endif
+			in.getIntvalueforIndex(in.getLength()-inindex),carry);
+
 		   result[longest-curindex] = (rsult+'0');
 	   }
 
@@ -147,10 +153,10 @@ struct UnsignedBigInteger {
 	   #ifdef DEBUG
 	   printf("%s\n",result);
 	   #endif
-	  // return result;
     }
+
 	const UnsignedBigInteger op_UBIhelper(const UnsignedBigInteger &in,
-			const std::function<const int(const int,const int, int&)> func) const {
+			const std::function<const short(const short,const short, short&)> func) const {
 				int carry{};
 				size_t longest{};
 
@@ -172,32 +178,66 @@ struct UnsignedBigInteger {
 				#ifdef DEBUG
 				printf("%s\n",result);
 				#endif
-				UnsignedBigInteger r{result};
-				return UnsignedBigInteger(result);
-				
+				char *nresult{};
+				nresult = result;
+	    while(*nresult == '0'){
+		   printf("found %c\n",*nresult);
+				    nresult++;
+	    }
+	    return UnsignedBigInteger(nresult);
+/*
+	    char *rresult = std::strcpy(new char[strlen(nresult)+1],nresult);
+				UnsignedBigInteger r{rresult};
+				delete[] rresult;
+				rresult = nullptr;
+				return r;
+*/
 	}
-    const UnsignedBigInteger op_INThelper(const int& in) const {
-	    char temp[std::numeric_limits<int>::digits10+2];
-	    sprintf(temp,"%d",in);
-	   char real[strlen(temp)+1];
-	   std::strcpy(real,temp);
-	    UnsignedBigInteger t{real};
+
+	template<typename T>
+    const char* convertTypetoArray(const T& in) const {
+	   long long templong{in};
+	   short remainder{0};
+	   char *iptr{};
+	   char temp[std::numeric_limits<T>::digits10+2];
+	   temp[std::numeric_limits<T>::digits10+1]='\0';
+	   iptr = &temp[std::numeric_limits<T>::digits10];
+	   while(templong != 0){
+		  remainder = templong % (long long)10;
+		  *iptr = remainder + '0';
+		  templong /= (long long)10;
+		  iptr--;
+	   }
+	   iptr++;
+	   return std::strcpy(new char[strlen(iptr)+1],iptr);
+    }
+
+    template<typename T>
+    const UnsignedBigInteger op_INThelper(const T& in) const {
+	   const char *real{convertTypetoArray(in)};
+	   UnsignedBigInteger t{real};
+	   delete[] real;
+	   real = nullptr;
 	   return t;
 
     }
-	const UnsignedBigInteger operator+(const int& in) const noexcept{
+	template<typename T>
+	const UnsignedBigInteger operator+(const T& in) const {
+		static_assert(std::is_integral<T>::value,"can only cast to integral type");
 	    return *this + op_INThelper(in);
 	}
-    const UnsignedBigInteger operator-(const int& in) const noexcept {
+	template<typename T>
+    const UnsignedBigInteger operator-(const T& in) const  {
+		static_assert(std::is_integral<T>::value,"can only cast to integral type");
 	   return *this - op_INThelper(in);
-//	   return *this-t;
     }
     const UnsignedBigInteger operator-(const UnsignedBigInteger& in) const {
 		return op_UBIhelper(in,sub2charswithCarry);
     }
-	const UnsignedBigInteger operator+(const UnsignedBigInteger& in) const{
+	const UnsignedBigInteger operator+(const UnsignedBigInteger& in) const {
 		return op_UBIhelper(in,add2charswithCarry);
 	}
+
 private:
 	const size_t internalLength;
 	const char *internalArray;
@@ -248,12 +288,12 @@ int main(){
 		f.tostring(),b.tostring(),(f+b).tostring());
 	
 	printf("Testing operator+ overload of UnsignedBigInteger:%s + int:%d = %s\n",
-		b.tostring(),27,(b+27).tostring());
+		b.tostring(),27,(b+(int)27).tostring());
 
 	printf("Testing operator+ overload UnsignedBigInteger:%s + int:%d = %s\n",f.tostring(),27,(f+27).tostring());
 
 	printf("Testing operator int() implicit cast overload of UnsignedBigInteger: %d + %s: %d\n",
-		 27,f.tostring(),27+f);
+		 27,f.tostring(),27+(int)f);
 
 	printf("%d\n",std::numeric_limits<int>::max());
 	UnsignedBigInteger g{"2147483647"};
@@ -279,6 +319,16 @@ int main(){
 	UnsignedBigInteger s1{"450"};
 	UnsignedBigInteger s2{"400"};
 	printf("450 - 400 = %s\n",(s1-s2).tostring());
+	try{
 	printf("400 - 450 = %s\n",(s2-s1).tostring());
-	
+	}
+	catch(std::range_error &e){
+		printf("range error: %s: %s - %s\n",e.what(),s2.tostring(),s1.tostring());
+	}
+	printf("Testing add to long: 2147483648L:%ld\n",2147483648L);
+	(s1+2147483648L).print();
+	printf("Testing add to implicit long cast (long)%ld\n",(long)45);
+	(s2+(long)45).print();
+	printf("Testing add to implicit short cast (short)%d\n",(short)5);
+	(s1+ (short)5).print();
 }
