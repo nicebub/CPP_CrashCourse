@@ -55,6 +55,9 @@ struct UnsignedBigInteger {
 	template<typename T>
 	operator T() const {
 		static_assert(std::is_integral<T>::value,"can only cast to integral type");
+
+		if((getLength() > std::numeric_limits<T>::digits10+2))
+ 		   throw std::overflow_error("narrowing");
 	    T value{0};
 	    long long temp{0};
 	    for(size_t iptr{0};iptr<getLength();iptr++){
@@ -64,8 +67,8 @@ struct UnsignedBigInteger {
 	   #ifdef DEBUG
 	    printf("found value: %lld",temp);
 	   #endif
-	    value = temp;
-	    if(value < 0 || (getLength() > std::numeric_limits<T>::digits10+2))
+	    value = (T)temp;
+	    if(value != temp)
 		   throw std::overflow_error("narrowing");
 	    return value;
 	}
@@ -109,7 +112,17 @@ struct UnsignedBigInteger {
 		   carry = 0;
 	   return r;
     }
-
+/*
+    static const short mul2charswithCarry(const short one, const short two, short& carry)  noexcept {
+    	return 0;
+    }
+    static const short div2charswithCarry(const short one, const short two, short& carry)  noexcept {
+    	return 0;
+    }
+    static const short mod2charswithCarry(const short one, const short two, short& carry)  noexcept {
+    	return 0;
+    }
+*/
     void getresultforFunction(const UnsignedBigInteger &in,
 	 	char (*result),const size_t longest,
 		const std::function<const short(const short,const short, short&)> func) const{
@@ -205,20 +218,20 @@ struct UnsignedBigInteger {
 
     template<typename T>
     const UnsignedBigInteger op_INThelper(const T& in) const {
+		static_assert(std::is_integral<T>::value,"can only cast to integral type");
 	   char real[std::numeric_limits<T>::digits10+2];
 	   convertTypetoArray(in,real);
-	   UnsignedBigInteger t{real};
+	   return UnsignedBigInteger(real);
+/*	   UnsignedBigInteger t{real};
 	   return t;
-
+	   */
     }
 	template<typename T>
 	const UnsignedBigInteger operator+(const T& in) const {
-		static_assert(std::is_integral<T>::value,"can only cast to integral type");
 	    return *this + op_INThelper(in);
 	}
 	template<typename T>
     const UnsignedBigInteger operator-(const T& in) const  {
-		static_assert(std::is_integral<T>::value,"can only cast to integral type");
 	   return *this - op_INThelper(in);
     }
     const UnsignedBigInteger operator-(const UnsignedBigInteger& in) const {
@@ -227,6 +240,17 @@ struct UnsignedBigInteger {
 	const UnsignedBigInteger operator+(const UnsignedBigInteger& in) const {
 		return op_UBIhelper(in,add2charswithCarry);
 	}
+/*
+	const UnsignedBigInteger operator*(const UnsignedBigInteger& in) const {
+		return op_UBIhelper(in,mul2charswithCarry);
+	}
+	const UnsignedBigInteger operator/(const UnsignedBigInteger& in) const {
+		return op_UBIhelper(in,div2charswithCarry);
+	}
+	const UnsignedBigInteger operator%(const UnsignedBigInteger& in) const {
+		return op_UBIhelper(in,mod2charswithCarry);
+	}
+*/
 
 private:
 	size_t internalLength;
