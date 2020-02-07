@@ -7,15 +7,21 @@ CPPFLAGS= -std=c++17 -g
 FILES = $(subst $(wildcard ./),, $(wildcard ./*.cpp))
 EXECS = $(patsubst %.cpp, %, $(FILES))
 OBJECTS= $(patsubst %.cpp, %.o, $(FILES))
-all: Fibonacci
+all: Fibonacci PrimeNumber fibnprime
 
 #%: %.o
 
-FibonacciIR.o: FibonacciIR.cpp FibonacciIR.h
+%.o: %.cpp %.h
 	$(CC) $(CPPFLAGS) $< -c
 	
 Fibonacci: FibonacciIR.o Fibonacci.cpp
-	$(CC) $(CPPFLAGS) $^ -o Fibonacci
+	$(CC) $(CPPFLAGS) $^ -o $@
+
+PrimeNumber: PrimeNumberIR.o PrimeNumber.cpp
+	$(CC) $(CPPFLAGS) $^ -o $@
+
+fibnprime: FibonacciIR.o PrimeNumberIR.o fibnprime.cpp
+	$(CC) $(CPPFLAGS) $^ -o $@
 
 clean:
 	rm $(EXECS) $(OBJECTS); rm -rf *.dSYM
