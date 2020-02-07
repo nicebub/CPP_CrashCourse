@@ -2,7 +2,7 @@ CC=g++
 CXX=g++
 #CXX= clang++
 #CPPFLAGS= -std=c++11 -g -fconcepts
-CPPFLAGS= -std=c++11 -g
+CPPFLAGS= -std=c++17 -g
 #-stdlib=libc++
 FILES = $(subst $(wildcard ./),, $(wildcard ./*.cpp))
 EXECS = $(patsubst %.cpp, %, $(FILES))
