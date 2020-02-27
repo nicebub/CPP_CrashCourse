@@ -1,0 +1,6 @@
+[submodule "chptr10/Catch2"]
+	path = chptr10/Catch2
+	url = https://github.com/catchorg/Catch2.git
+[submodule "chptr10/hippomocks"]
+	path = chptr10/hippomocks
+	url = https://github.com/dascandy/hippomocks.git
