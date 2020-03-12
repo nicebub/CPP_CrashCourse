@@ -9,19 +9,20 @@ CPPFLAGS= -std=c++17 -g -I. -I$(CATCH_PATH) -I$(HIPPO_PATH)
 CATCH = $(CATCH_PATH)catch.hpp
 HIPPO = $(HIPPO_PATH)..
 FILES = $(subst $(wildcard ./),, $(wildcard ./*.cpp))
-EXECS = exercise1_test
-OBJECTS= $(patsubst %.cpp, %.o, $(FILES))
+EXECS = exercise1_test passwordGenerator
+EX1 = $(wildcard ./exercise1*)
+OBJECTS= $(patsubst passwordGenerator%.cpp, passwordGenerator%.o, $(FILES))
 CREATED= 
 all: $(EXECS) $(CATCH) $(HIPPO)
 
-#%: %.o
+%: %.o
 
-#%.o: %.cpp
+%.o: %.cpp
 
-exercise1_test: $(OBJECTS)
+exercise1_test: $(EX1)
 	$(CXX) $(CPPFLAGS) $^ -o $@
 
 clean:
-	rm $(EXECS) $(CREATED) $(OBJECTS); rm -rf *.dSYM
+	rm $(EXECS) $(CREATED) $(EX1OBJECTS); rm -rf *.dSYM
 
 .PHONY: all clean
